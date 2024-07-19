@@ -1,10 +1,11 @@
 // #region ::: IMPORTS :::
-import express, { Request, Response } from "express";
+import express, { request, Request, response, Response } from "express";
 import { createClient } from "@vercel/postgres";
 import { config } from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import path from "path";
 // #endregion
 
 // #region ::: CONFIGURATIONS :::
@@ -54,6 +55,11 @@ io.on("connection", (socket) => {
 });
 
 // Define routes
+
+app.get("/", (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.get("/api/messages", async (req: Request, res: Response) => {
   // restituisce tutti i messaggi
   try {
@@ -77,8 +83,4 @@ app.post("/api/messages", async (req: Request, res: Response) => {
 // Start the server
 server.listen(port, () => {
   console.log(`Server started at http://localhost:${port}`);
-});
-
-app.listen(8080, () => {
-  console.log("Server listening on port 8080");
 });
