@@ -84,7 +84,7 @@
 
       /* Aggiungere icona di invio */
       button::before {
-        content: "✉️";
+        content: ":envelope:";
         margin-right: 5px;
       }
     </style>
@@ -92,26 +92,31 @@
   <body>
     <ul id="messages"></ul>
     <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
+      <input
+        id="input"
+        autocomplete="off"
+        placeholder="Type a message..."
+      /><button>Invia</button>
     </form>
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <script>
-      // Connessione al server socket.io
-      var socket = io("http://localhost:3000");
+      const URL = window.location.hostname.includes("localhost")
+        ? "http://localhost:3000"
+        : `https://${window.location.hostname}`;
 
-      // Gestione dell'invio del modulo
+      var socket = io(URL);
+
       document.addEventListener("DOMContentLoaded", async (event) => {
         var form = document.getElementById("form");
         var input = document.getElementById("input");
         var messages = document.getElementById("messages");
-
-        // Scarica i messaggi iniziali
         try {
-          const response = await fetch("http://localhost:3000/api/messages");
+          const response = await fetch(`${URL}/api/messages`);
           const initialMessages = await response.json();
           initialMessages.forEach((msg) => {
             var item = document.createElement("li");
             item.textContent = msg.content;
+            item.className = "received";
             messages.appendChild(item);
           });
         } catch (error) {
@@ -119,18 +124,20 @@
         }
 
         form.addEventListener("submit", function (e) {
-          e.preventDefault(); // Evita l'invio del modulo alla vecchia maniera
+          e.preventDefault();
           if (input.value) {
-            // Invia il messaggio al server
             socket.emit("message-sent", input.value);
+            var item = document.createElement("li");
+            item.textContent = input.value;
+            messages.appendChild(item);
             input.value = "";
           }
         });
 
-        // Ascolta i messaggi dal server
         socket.on("message-received", function (msg) {
           var item = document.createElement("li");
           item.textContent = msg;
+          item.className = "received";
           messages.appendChild(item);
           window.scrollTo(0, document.body.scrollHeight);
         });
