@@ -84,7 +84,6 @@
 
       /* Aggiungere icona di invio */
       button::before {
-        content: ":envelope:";
         margin-right: 5px;
       }
     </style>
@@ -92,14 +91,24 @@
   <body>
     <ul id="messages"></ul>
     <form id="form" action="">
-      <input
-        id="input"
-        autocomplete="off"
-        placeholder="Type a message..."
-      /><button>Invia</button>
+      <input id="input" autocomplete="off" placeholder="Type a message..." />
+      <button>Invia</button>
     </form>
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const idRoom = urlParams.get("id");
+
+      function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
+
       const URL = window.location.hostname.includes("localhost")
         ? "http://localhost:3000"
         : `https://${window.location.hostname}`;
@@ -107,40 +116,74 @@
       var socket = io(URL);
 
       document.addEventListener("DOMContentLoaded", async (event) => {
-        var form = document.getElementById("form");
-        var input = document.getElementById("input");
-        var messages = document.getElementById("messages");
-        try {
-          const response = await fetch(`${URL}/api/messages`);
-          const initialMessages = await response.json();
-          initialMessages.forEach((msg) => {
-            var item = document.createElement("li");
-            item.textContent = msg.content;
-            item.className = "received";
-            messages.appendChild(item);
-          });
-        } catch (error) {
-          console.error("Errore nel recuperare i messaggi iniziali:", error);
+        if (!idRoom) {
+          document.body.innerHTML = `
+            <div class='container'>
+              <input type="text" id="roomIdInput" placeholder="Room ID" />
+              <button id="enterRoomButton">Enter Room</button>
+            </div>
+          `;
+          document
+            .getElementById("enterRoomButton")
+            .addEventListener("click", () => {
+              const roomId = document.getElementById("roomIdInput").value;
+              if (roomId) {
+                window.location.search = `id=${roomId}`;
+              }
+            });
+          return;
         }
 
-        form.addEventListener("submit", function (e) {
-          e.preventDefault();
-          if (input.value) {
-            socket.emit("message-sent", input.value);
-            var item = document.createElement("li");
-            item.textContent = input.value;
-            messages.appendChild(item);
-            input.value = "";
-          }
-        });
+        var form = document.getElementById("form");
+        var input = document.getElementById("input");
+        var usernameInput = document.getElementById("username");
+        var messages = document.getElementById("messages");
 
-        socket.on("message-received", function (msg) {
-          var item = document.createElement("li");
-          item.textContent = msg;
-          item.className = "received";
-          messages.appendChild(item);
-          window.scrollTo(0, document.body.scrollHeight);
-        });
+        if (idRoom) {
+          socket.emit("join_room", idRoom);
+          try {
+            const response = await fetch(`${URL}/api/rooms/${idRoom}/messages`);
+            const initialMessages = await response.json();
+            initialMessages.forEach((msg) => {
+              var item = document.createElement("li");
+              item.innerHTML = `<div>${
+                msg.content
+              }</div><div class="message-info">${msg.username} - ${formatDate(
+                msg.created_at
+              )}</div>`;
+              item.className = "received";
+              messages.appendChild(item);
+            });
+          } catch (error) {
+            console.error("Errore nel recuperare i messaggi iniziali:", error);
+          }
+
+          form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            if (input.value) {
+              const messageData = {
+                content: input.value,
+                username: "anonimo",
+                idRoom,
+              };
+              socket.emit("message-sent", messageData);
+              input.value = "";
+            }
+          });
+
+          socket.on(
+            "message-received",
+            function ({ id, content, username, created_at, idRoom: room }) {
+              var item = document.createElement("li");
+              item.innerHTML = `<div>${content}</div><div class="message-info">${username} - ${formatDate(
+                created_at
+              )}</div>`;
+              item.className = "received";
+              messages.appendChild(item);
+              window.scrollTo(0, document.body.scrollHeight);
+            }
+          );
+        }
       });
     </script>
   </body>
