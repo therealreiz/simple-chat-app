@@ -1,11 +1,22 @@
-### MESSAGE LIST
-GET http://localhost:3000/api/messages
+### ROOM LIST
+GET http://localhost:3000/api/rooms
 
-### MESSAGE CREATE
-POST http://localhost:3000/api/messages
-content-type : application/json
+### CREATE ROOM
+POST http://localhost:3000/api/rooms
+Content-Type: application/json
 
 {
-    "content" : "Hello, World"  ,
-    "username" : "Samuele Salica"
+  "name": "room-2"
+}
+ 
+### MESSAGE ROOM LIST
+GET http://localhost:3000/api/rooms/800596be-6fba-4b9f-ae7d-5a36087947de/messages
+
+### MESSAGE CREATE 
+POST http://localhost:3000/api/rooms/800596be-6fba-4b9f-ae7d-5a36087947de/messages
+Content-Type: application/json
+
+{
+  "content": "Here we go again!!",
+  "username": "samuelesalica"
 }
